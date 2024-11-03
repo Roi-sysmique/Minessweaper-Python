@@ -22,6 +22,7 @@ pygame.display.set_caption('minesweeper')
 
 CLOCK = pygame.time.Clock()
 FPS = 120
+mouse_click = None
 num_to_image = {
     1: "Assets/number-1.png",
     2: "Assets/number-2.png",
@@ -46,27 +47,26 @@ class Cell(pygame.sprite.Sprite):
         self.rect = self.image.get_rect()
         self.rect.topleft = (self.col * square_length, (self.row * square_length) + 60)
         self.mark_flag = False
-
+        self.last_click_id = None
+        self.revealed = False
         # Set mine status and color based on game_grid
         if game_grid[self.row][self.col] == '*':
             self.mine = True
-            self.image.fill('red')  # Red for mine
         else:
             self.mine = False
 
-        # Define possible neighboring cell offsets if not a mine
+        self.neighbor_offsets = [(-1, 0), (1, 0), (0, -1), (0, 1),
+                                 (-1, -1), (-1, 1), (1, -1), (1, 1)]
+
+        # Initialize list for neighboring cells and count of mines
+        self.neighbors = []
+        self.num = None
+
+        # Remove invalid neighboring offsets
+        self.remove_invalid_neighbors()
+
+        # Calculate the number of neighboring mines if not a mine
         if not self.mine:
-            self.neighbor_offsets = [(-1, 0), (1, 0), (0, -1), (0, 1),
-                                     (-1, -1), (-1, 1), (1, -1), (1, 1)]
-
-            # Initialize list for neighboring cells and count of mines
-            self.neighbors = []
-            self.num = None
-
-            # Remove invalid neighboring offsets
-            self.remove_invalid_neighbors()
-
-            # Calculate the number of neighboring mines
             self.count_mines()
 
     def remove_invalid_neighbors(self):
@@ -84,8 +84,31 @@ class Cell(pygame.sprite.Sprite):
         # Count mines among neighbors and update game_grid
         self.num = self.neighbors.count('*')
         game_grid[self.row][self.col] = self.num
-        if self.num != 0:
-            self.image = pygame.transform.scale(pygame.image.load(num_to_image[self.neighbors.count('*')]), (square_length, square_length))
+
+    def update(self, click):
+
+        if click != None and self.rect.collidepoint(click[0]) and click[1] == 2 and click[2] != self.last_click_id and not self.revealed:
+            if not self.mark_flag:
+                self.image = pygame.transform.scale(pygame.image.load("Assets/flag.png"),
+                                                    (square_length, square_length))
+                self.mark_flag = True
+                self.last_click_id = click[2]
+            if self.mark_flag and click[2] != self.last_click_id:
+                self.image = pygame.transform.scale(pygame.image.load('Assets/block.png'),
+                                                    (square_length, square_length))
+                self.mark_flag = False
+                self.last_click_id = click[2]
+        elif click != None and self.rect.collidepoint(click[0]) and click[1] == 0:
+            if self.mark_flag:
+                pass
+            elif self.num == 0:
+                self.image = pygame.surface.Surface((square_length, square_length))
+                self.image.fill('grey')
+                self.revealed = True
+            elif not self.mine:
+                self.image = pygame.transform.scale(pygame.image.load(num_to_image[self.neighbors.count('*')]),
+                                                    (square_length, square_length))
+                self.revealed = True
 
 
 def draw_grid():
@@ -111,7 +134,7 @@ def place_mines(mines_count):
 
 
 # Place mines and initialize cells
-place_mines(10)
+place_mines(20)
 cells = pygame.sprite.Group()
 for row in range(0, len(game_grid)):
     for col in range(0, len(game_grid[row])):
@@ -120,13 +143,19 @@ for row in range(0, len(game_grid)):
 
 # Main game loop
 while True:
+    mouse_key = pygame.mouse.get_pressed(3)
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             pygame.quit()
             quit()
+        if mouse_key[2]:
+            mouse_click = (pygame.mouse.get_pos(), 2, random.randrange(0, 1000))
+        elif mouse_key[0]:
+            mouse_click = (pygame.mouse.get_pos(), 0, random.randrange(0, 1000))
 
     # Draw cells and grid
     cells.draw(SCREEN)
+    cells.update(mouse_click)
     draw_grid()
     pygame.display.update()
     CLOCK.tick(FPS)
