@@ -23,6 +23,7 @@ pygame.display.set_caption('Minesweeper')
 CLOCK = pygame.time.Clock()
 FPS = 120
 mouse_click = None
+num_mine = 20
 
 # Mapping numbers to their corresponding image paths
 num_to_image = {
@@ -36,6 +37,7 @@ num_to_image = {
     8: "Assets/number-8.png"
 }
 game_over = False
+game_win = False
 
 
 class Cell(pygame.sprite.Sprite):
@@ -52,9 +54,11 @@ class Cell(pygame.sprite.Sprite):
         self.mark_flag = False
         self.last_click_id = None
         self.revealed = False
+        self.mine = False
 
         # Set mine status based on game_grid
-        self.mine = game_grid[self.row][self.col] == '*'
+        if game_grid[self.row][self.col] == '*':
+            self.mine = True
 
         # Neighboring cell offsets for mine counting
         self.neighbor_offsets = [(-1, 0), (1, 0), (0, -1), (0, 1),
@@ -165,8 +169,18 @@ def reveal_all_mines():
             cell.revealed = True
 
 
+def check_win():
+    global game_win
+    for _ in cells:
+        if not _.mine and _.revealed:
+            pass
+        elif not _.mine and not _.revealed:
+            return None
+    game_win = True
+
+
 # Place mines and initialize cells
-place_mines(20)
+place_mines(num_mine)
 cells = pygame.sprite.Group()
 for row in range(0, len(game_grid)):
     for col in range(0, len(game_grid[row])):
@@ -185,12 +199,15 @@ while True:
                 mouse_click = (pygame.mouse.get_pos(), 2, random.randrange(0, 1000))
             elif mouse_key[0]:  # Left click
                 mouse_click = (pygame.mouse.get_pos(), 0, random.randrange(0, 1000))
+        if game_win and not game_over:
+            print('win')
 
     # Draw cells and grid
     cells.draw(SCREEN)
     cells.update(mouse_click)
     flood_fill()
     draw_grid()
+    check_win()
     if game_over:
         reveal_all_mines()
     pygame.display.update()
