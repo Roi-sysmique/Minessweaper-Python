@@ -233,4 +233,59 @@ while True:
     num_flag_txt = FONT.render(str(num_flag), True, 'red')
     num_flag_txt_rect = num_flag_txt.get_rect(midtop=(SCREEN_WIDTH/4, 10))
     time_text = FONT.render(str(time), True, 'red')
-    time_text_rect = time_text.get_rect(midtop=(SCREEN_WIDTH *
+    time_text_rect = time_text.get_rect(midtop=(SCREEN_WIDTH * 3 / 4, 10))
+    mouse_key = pygame.mouse.get_pressed(3)
+    last_mouse_click = None
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            pygame.quit()
+            quit()
+        # Check for mouse button inputs and update mouse click status
+        if mouse_key[2]:  # Right click
+            mouse_click = (pygame.mouse.get_pos(), 2, random.randrange(0, 1000))
+        elif mouse_key[0]:  # Left click
+            mouse_click = (pygame.mouse.get_pos(), 0, random.randrange(0, 1000))
+        # Reset game if the restart button is clicked
+        if mouse_click != None and restart_rect.collidepoint(pygame.mouse.get_pos()) and last_mouse_click != mouse_click[2] and mouse_key[0]:
+            last_mouse_click = mouse_click[2]
+            game_grid = [['.' for _ in range(int(SCREEN_WIDTH / CELL_SIZE))] for _ in
+                         range(int((SCREEN_HEIGHT - 60) / CELL_SIZE))]
+            place_mines(num_mine)
+            num_flag = num_mine
+            cells.empty()
+            for row in range(0, len(game_grid)):
+                for col in range(0, len(game_grid[row])):
+                    cell = Cell(row=row, col=col)
+                    cells.add(cell)
+            game_over = False
+            game_win = False
+            # Reset timer
+            start_time = pygame.time.get_ticks()
+            minutes = 0
+            second = 0
+            time = "0:00"  # Update initial display
+
+    # Draw cells and grid
+    if not game_over and not game_win:
+        time_sys()
+    SCREEN.blit(BACKGROUND, (0, 0))
+    SCREEN.blit(restart, restart_rect)
+    SCREEN.blit(time_text, time_text_rect)
+    cells.draw(SCREEN)
+    cells.update(mouse_click)
+    SCREEN.blit(num_flag_txt, num_flag_txt_rect)
+    flood_fill()
+    draw_grid()
+    check_win()
+    # Display end game screen if player loses or wins
+    if game_over:
+        reveal_all_mines()
+        restart = pygame.transform.scale(pygame.image.load('Assets/loose_button.png'), (60, 60))
+        SCREEN.blit(restart, restart_rect)
+    if game_win:
+        restart = pygame.transform.scale(pygame.image.load('Assets/win_button.png'), (60, 60))
+        SCREEN.blit(restart, restart_rect)
+    else:
+        restart = pygame.transform.scale(pygame.image.load('Assets/button.png'), (60, 60))
+    pygame.display.update()
+    CLOCK.tick(FPS)
